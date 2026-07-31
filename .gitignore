@@ -1,0 +1,38 @@
+# Music files (too large for version control)
+*.mp3
+*.wma
+*.flac
+*.ogg
+*.m4a
+*.wav
+
+# Music directories
+Music/
+music/
+
+# Backup directories
+Music_backup/
+backup/
+*_backup/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.vim/
+
+# Temporary files
+.tmp/
+tmp/
+*.temp
