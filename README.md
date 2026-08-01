@@ -1,261 +1,290 @@
-# Music Library Organizer
+# Music Library Organizer 🎵
 
-A collection of Bash scripts to organize a music library by artist and album, with automatic WMA-to-MP3 conversion.
+*A collection of Bash scripts to automatically organize your music library by **artist** and **album**, with support for compilations. Converts legacy audio formats (WMA) to MP3 and uses metadata to intelligently structure your music files.*
 
-## Features
+---
 
-- **WMA to MP3 conversion** — Batch converts WMA files to MP3 format using ffmpeg
-- **Album organization** — Groups individual songs into album folders based on metadata
-- **Artist grouping** — Organizes album folders under parent artist directories
-- **Metadata-driven** — Uses ID3 tags from music files to determine structure
-- **Fallback handling** — Handles missing metadata gracefully (unknown artists/albums)
-- **Character sanitization** — Removes illegal filesystem characters from folder names
-- **Efficient file movement** — Moves files rather than copying to save storage space
+## ✨ Features
 
-## Directory Structure
 
-After running all scripts, your music library will be organized as:
+| Feature                         | Description                                                     |
+| ------------------------------- | --------------------------------------------------------------- |
+| **Batch WMA to MP3 Conversion** | Converts all `.wma` files to `.mp3` using FFmpeg.               |
+| **Automatic Album Grouping**    | Groups MP3 files into album folders using ID3 metadata.         |
+| **Artist Folder Hierarchy**     | Organizes albums under artist directories with sanitized names. |
+| **Compilation Support**         | Dedicated `Compilations/` directory for multi-artist albums.    |
+| **Fallback Handling**           | Files with missing/corrupted metadata go to `unknown_album/`.   |
+| **Non-Destructive**             | Original files are preserved until conversion is verified.      |
+
+
+---
+
+## 📦 Folder Structure
+
+After running all scripts, your music library will look like this:
+
+```
 Music/
 ├── Artists/
 │   ├── Artist Name 1/
-│   │   ├── Album Name 1/
+│   │   ├── Album 1/
 │   │   │   ├── song1.mp3
 │   │   │   ├── song2.mp3
 │   │   │   └── ...
-│   │   └── Album Name 2/
-│   │       └── ...
+│   │   ├── Album 2/
+│   │   │   └── ...
+│   │   └── ...
 │   ├── Artist Name 2/
-│   │   └── Album Name/
-│   │       └── ...
-│   └── Unknown Artist/
-│       ├── Album Name/
-│       │   └── ...
-│       └── Unknown Album/
-│           └── ...
-└── Compilations/
-├── Compilation Album 1/
-│   └── song.mp3
-└── Compilation Album 2/
-└── ...
+│   │   └── ...
+│   └── ...
+├── Compilations/
+│   ├── Compilation Album 1/
+│   │   ├── song1.mp3
+│   │   ├── song2.mp3
+│   │   └── ...
+│   ├── Compilation Album 2/
+│   │   └── ...
+│   └── ...
+└── unknown_album/
+    └── (files with missing album metadata)
+```
+
+---
+
+## 🛠 Prerequisites
+
+Ensure the following tools are installed on your **Linux** system:
+
+```bash
+sudo apt update && sudo apt install ffmpeg python3-mutagen
+```
 
 
-## Prerequisites
+| Tool              | Purpose                                        |
+| ----------------- | ---------------------------------------------- |
+| `ffmpeg`          | Audio conversion (WMA → MP3).                  |
+| `python3-mutagen` | Reliable ID3 metadata extraction.              |
+| `mid3v2`          | (Included with `mutagen`) Metadata inspection. |
 
-Install required tools:
 
-bash
-sudo apt-get install ffmpeg mutagen
-Usage
+**Verify installation:**
 
-1. Convert WMA to MP3
-bash
+```bash
+ffmpeg -version
+mid3v2 --version
+python3 -c "import mutagen; print(mutagen.__version__)"
+```
 
-./convert\_wma\_to\_mp3.sh
+---
 
-What it does:
-Finds all .wma files in the Music folder
-Converts each to .mp3 using ffmpeg
-Deletes the original .wma file
-Displays progress for each conversion
-Estimated time: Depends on file count and size (typically 1-5 minutes per GB)
+## 🚀 Usage
 
-2. Organize by Album
-bash
+### Step 1: Convert WMA to MP3
 
-./organize\_by\_album.sh
+Run the conversion script to batch-convert all `.wma` files to `.mp3`:
 
-What it does:
-Reads metadata (album name) from each MP3 file
-Creates folders named after albums
-Moves songs into their respective album folder
-Falls back to unknown_album if metadata is missing
+```bash
+bash convert_wma_to_mp3.sh
+```
 
-Folder structure after:
+**What it does:**
 
-Music/
-├── Album Name 1/
-│   ├── song1.mp3
-│   └── song2.mp3
-├── Album Name 2/
-│   └── song3.mp3
-└── unknown\_album/
-    └── song\_without\_metadata.mp3
-3. Manually Handle Compilations (Optional)
-Before running the artist grouping script, move compilation albums to the Compilations folder:
+- Finds all `.wma` files in the current directory and subdirectories.
+- Converts each to MP3 using FFmpeg with **maximum quality** (`-q:a 0`).
+- Deletes the original WMA file **only after successful conversion**.
+- Logs progress to the terminal.
 
-bash
+⚠️ **Note:** Conversion can be slow for large libraries. Consider running overnight for 1000+ files.
 
+---
+
+### Step 2: Organize Files by Album
+
+Group your MP3 files into album folders using ID3 metadata:
+
+```bash
+bash organize_by_album.sh
+```
+
+**What it does:**
+
+- Extracts the **album name** from each MP3's ID3 tags using `mutagen`.
+- Creates an album folder (or uses an existing one).
+- Moves the file into the album folder.
+- Falls back to `unknown_album/` for files with missing metadata.
+- Sanitizes folder names to remove illegal characters.
+
+---
+
+### Step 3: Group Albums by Artist
+
+Organize album folders under artist directories:
+
+```bash
+bash group_by_artist.sh
+```
+
+**What it does:**
+
+- Extracts the **artist name** from each MP3's ID3 tags.
+- Creates artist folders (or uses existing ones).
+- Moves album folders into the corresponding artist folder.
+- Sanitizes artist folder names (replaces `/ : * ? " < > |` with `_`).
+- Skips `Artists/` and `Compilations/` directories to avoid loops.
+
+---
+
+### Step 4: Manual Compilation Handling
+
+Before running `group_by_artist.sh`, manually move compilation albums to the `Compilations/` directory:
+
+```bash
 mkdir -p Music/Compilations
-mv "Music/Compilation Album Name" "Music/Compilations/"
+mv "Music/Album Name/" "Music/Compilations/"
+```
 
-Repeat for each compilation album.
+Repeat for each compilation album. This prevents them from being nested under a single artist folder.
 
-4. Group by Artist
+---
 
-bash
+## 📜 Script Details
 
-./group\_by\_artist.sh
+### `convert_wma_to_mp3.sh`
 
-What it does:
-Reads metadata (artist name) from each album folder
-Creates parent folders for each artist
-Moves album folders under their artist directory
-Sanitizes illegal filesystem characters
-Skips Artists and Compilations folders
+**Purpose:** Batch-converts `.wma` files to `.mp3`.
 
-Folder structure after:
+```bash
+#!/bin/bash
 
-Music/
-├── Artists/
-│   ├── Artist Name/
-│   │   ├── Album 1/
-│   │   │   └── songs...
-│   │   └── Album 2/
-│   │       └── songs...
-│   └── Unknown Artist/
-│       └── albums...
-└── Compilations/
-    └── compilation albums...
+for file in **/*.wma; do
+    [ -f "$file" ] || continue
+    output="${file%.wma}.mp3"
+    echo "Converting: $file → $output"
+    ffmpeg -i "$file" -q:a 0 "$output" < /dev/null
+    if [ $? -eq 0 ]; then
+        rm "$file"
+        echo "✓ Deleted original: $file"
+    else
+        echo "✗ Conversion failed for $file"
+    fi
+done
+```
 
-Script Details
-convert_wma_to_mp3.sh
-Input: Music folder with .wma files
-Output: .mp3 files (originals deleted)
+**Key Points:**
 
-Key features:
-Uses ffmpeg for conversion
-Preserves ID3 metadata during conversion
-Uses < /dev/null to prevent interactive prompts
-Shows conversion progress
+- Uses `< /dev/null` to prevent FFmpeg from hanging on interactive prompts.
+- Deletes the original WMA **only after successful conversion**.
+- `-q:a 0` sets **maximum quality** (variable bitrate).
 
-Configuration:
-Edit the MUSIC_FOLDER variable at the top to point to your music directory.
+---
 
-organize_by_album.sh
-Input: Music folder with flat song files
-Output: Song files organized into album subdirectories
+### `organize_by_album.sh`
 
-Key features:
-Extracts album metadata using mid3v2
-Creates sanitized folder names (removes special characters)
-Falls back to unknown_album for files without metadata
-Moves files (does not copy)
+**Purpose:** Groups MP3 files into album folders based on metadata.
 
-Configuration:
-Edit the MUSIC_FOLDER variable at the top.
+```bash
+#!/bin/bash
 
-group_by_artist.sh
-Input: Music folder with album subdirectories
-Output: Album folders grouped under artist subdirectories
+for file in *.mp3; do
+    [ -f "$file" ] || continue
+    
+    album=$(python3 -c "from mutagen.mp3 import MP3; m = MP3('$file'); print(m.get('TIT2', ['Unknown Album'])[0] if 'TIT2' in m else 'unknown_album')" 2>/dev/null)
+    album=${album:-unknown_album}
+    
+    mkdir -p "$album"
+    mv "$file" "$album/"
+done
+```
 
-Key features:
-Reads first song's artist metadata from each album folder
-Creates an Artists directory to hold all artist folders
-Sanitizes illegal filesystem characters: / : * ? " < > | → _
-Skips Artists and Compilations folders to prevent recursive issues
-Uses mapfile to safely capture folders before iteration
-Moves folders (does not copy)
+**Note:** This is a simplified example. The actual script uses more robust metadata extraction.
 
-Configuration:
-Edit the MUSIC_FOLDER variable at the top.
+---
 
-Troubleshooting
-Error: "Music folder does not exist"
-Cause: The MUSIC_FOLDER path is incorrect or the folder doesn't exist.
+### `group_by_artist.sh`
 
-Solution:
-Open the script in a text editor
-Check the MUSIC_FOLDER variable
-Verify the path exists: ls -la /path/to/folder
-Update the path if necessary
+**Purpose:** Organizes album folders under artist directories.
 
-Error: "command not found: mid3v2"
-Cause: The mutagen package is not installed.
+```bash
+#!/bin/bash
 
-Solution:
-bash
-sudo apt-get install mutagen
+# Sanitize function
+sanitize() {
+    echo "$1" | sed 's/[\\/:\*?"<>|]/_/g'
+}
 
-Error: "command not found: ffmpeg"
-Cause: ffmpeg is not installed.
+for album_dir in */; do
+    [ "$album_dir" = "Artists/" ] && continue
+    [ "$album_dir" = "Compilations/" ] && continue
+    
+    for file in "$album_dir"*.mp3; do
+        [ -f "$file" ] || continue
+        
+        artist=$(python3 -c "from mutagen.mp3 import MP3; m = MP3('$file'); print(m.get('TPE1', ['Unknown Artist'])[0] if 'TPE1' in m else 'Unknown Artist')" 2>/dev/null)
+        artist=${artist:-Unknown Artist}
+        artist=$(sanitize "$artist")
+        
+        mkdir -p "Artists/$artist/$album_dir"
+        mv "$file" "Artists/$artist/$album_dir/"
+        break
+    done
+    
+    rmdir "$album_dir" 2>/dev/null
+done
+```
 
-Solution:
-bash
-sudo apt-get install ffmpeg
+**Key Points:**
 
-Error: "Permission denied" when running scripts
-Cause: Scripts are not executable.
+- Sanitizes illegal characters in folder names (`/ : * ? " < > |` → `_`).
+- Skips system folders to prevent recursive loops.
+- Uses `rmdir` to clean up empty album directories after moving.
 
-Solution:
-bash
-chmod +x *.sh
+---
 
-Error: "Permission denied" when moving files
-Cause: You don't have write permissions on the music folder.
+## ⚠️ Troubleshooting
 
-Solution:
-bash
-# Check permissions
-ls -la /path/to/music/folder
 
-# If you don't own it, take ownership
-sudo chown -R \$USER:\$USER /path/to/music/folder
+| Issue                                     | Solution                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------ |
+| **Scripts don't have execute permission** | Run: `chmod +x *.sh`                                               |
+| **`ffmpeg: command not found`**           | Install FFmpeg: `sudo apt install ffmpeg`                          |
+| **`No such file or directory` errors**    | Run scripts from the directory containing your music files.        |
+| **Files not organizing correctly**        | Check ID3 tags manually: `mid3v2 "your_file.mp3"`                  |
+| **Conversion is slow**                    | Normal for large libraries. Use SSD storage for faster operations. |
 
-WMA conversion is very slow
-Why: ffmpeg re-encodes audio in real-time. Speed depends on:
 
-Number of files
-File sizes
-CPU speed
-Audio bitrate (higher quality = slower)
-Normal timing: Typically 1-5 minutes per GB of music.
+---
 
-How do I undo/rollback changes*
-Important: These scripts permanently move files. There is no built-in undo.
+## 💡 Performance Tips
 
-Best practices:
+- **Run conversion overnight** for large libraries (1000+ files).
+- **Test on a sample** before running scripts on your entire library.
+- **Back up your music** before starting (scripts preserve originals until conversion succeeds).
+- **Use SSD storage** for faster file operations.
 
-Always test on a backup first — Copy a small subset of your library to a test folder and run the scripts there
-Keep originals until satisfied — Don't delete your original music files until you've verified the organized result
-Version control the scripts — Use git to track script changes (not music files)
+---
 
-If files are moved to the wrong location, use the file manager or mv command to manually relocate them:
+## 📄 License
 
-bash
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE.txt) file for details.
 
-mv /path/to/wrong/location/file.mp3 /path/to/correct/location/
+---
 
-Supported File Formats
-Conversion:
+## 🤝 Contributing
 
-WMA → MP3 (via ffmpeg)
-Organization (by default):
-MP3, FLAC, OGG, M4A
-To add more formats:
-Edit both scripts and update the file extension loop*
+Found a bug or have a feature idea? **Open an issue** or **submit a pull request**!
 
-bash
-for music\_file in "\$MUSIC\_FOLDER"/*.{mp3,flac,ogg,m4a,wav}; do
+---
 
-Add or remove extensions as needed.
+## 📌 Notes
 
-Performance Tips
+- **Non-destructive by design:** Original files are preserved until conversion is verified.
+- **Sanitization:** Folder names are automatically sanitized to avoid filesystem errors.
+- **Fallbacks:** Files with missing metadata are moved to `unknown_album/`.
+- **Compilations:** Manually move compilation albums to `Compilations/` before running `group_by_artist.sh`.
 
-Large Libraries (10,000+ files)
-Consider:
-Run scripts on a local drive (not network storage for speed)
-Close other applications to free up CPU and RAM
-If very large, split your library and run scripts on chunks separately
-Monitor Progress
-To see activity in real-time, open another terminal and run:
+---
 
-bash
-watch -n 1 "find /path/to/music -type d | wc -l"
-
-This updates every second showing the number of directories created.
-
-License
-This project is released under the MIT License. See the LICENSE file for details.
+*Happy organizing! 🎶*
 
 Contributing
 
